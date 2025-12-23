@@ -441,12 +441,19 @@ function gemini(req, opts) {
         return req;
     }
 
+    const requestBody = {
+        ...transformMessages(req.messages),
+        tools: [{
+            googleSearch: {}
+        }]
+    };
+
     fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${gemini.apiKey}`, {
         method: 'POST',
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify(transformMessages(req.messages))
+        body: JSON.stringify(requestBody)
     }).then(response => {
         const reader = response.body.getReader();
 

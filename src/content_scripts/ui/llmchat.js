@@ -7,10 +7,11 @@ import {
     rotateInput,
 } from '../common/utils.js';
 
-export default function (omnibar, front) {
+export default function (panelElements) {
+    const { messagesDiv, inputElement, providerSpan, promptSpan } = panelElements;
+    
     const self = {
         prompt: '🐝',
-        omnibarPosition: "bottom",
     };
 
     function getPageContext() {
@@ -153,9 +154,9 @@ export default function (omnibar, front) {
 
     function showSystemMessage(msg, duration) {
         const li = createElementWithContent('li', msg, { "class": "role-surfingkeys" });
-        omnibar.resultsDiv.querySelector('ul')?.append(li);
+        messagesDiv.querySelector('ul')?.append(li);
 
-        // Add fadeout animation after 3 seconds
+        // Add fadeout animation after duration
         setTimeout(() => {
             li.style.transition = "opacity 1s";
             li.style.opacity = "0";
@@ -169,7 +170,7 @@ export default function (omnibar, front) {
         messages = messages.slice(0, RESERVED_MESSAGE_COUNT);
         // Reset system message so it gets refreshed with current page context on next open
         messages[0].content = "";
-        omnibar.resultsDiv.querySelector('ul')?.remove();
+        messagesDiv.querySelector('ul')?.remove();
         renderMessages();
     };
     const commands = {
@@ -180,7 +181,7 @@ export default function (omnibar, front) {
             if (providers.indexOf(p) !== -1) {
                 clear();
                 provider = p;
-                omnibar.resultsDiv.querySelector('h4').textContent = p;
+                providerSpan.textContent = p;
             } else {
                 const msg = `Please specify a provider, which can be [ ${providers.join(", ")} ].`
                 showSystemMessage(msg, 8000);
@@ -256,7 +257,7 @@ Use this context to answer user questions about the page.`;
                 ul.append(li);
             }
         }
-        omnibar.resultsDiv.append(ul);
+        messagesDiv.append(ul);
         if (ul.lastElementChild) {
             ul.lastElementChild.scrollIntoView({ behavior: 'instant', block: 'end', });
         }
@@ -280,11 +281,11 @@ ${pageContext.content}
 
 Use this context to answer user questions about the page.`;
         }
-        omnibar.resultsDiv.className = "llmChat";
         if (!provider) {
             provider = opts && opts.provider || runtime.conf.defaultLLMProvider;
         }
-        omnibar.resultsDiv.append(createElementWithContent('h4', provider));
+        providerSpan.textContent = provider;
+        promptSpan.textContent = self.prompt;
         renderMessages();
 
         userInput = "";
@@ -300,35 +301,34 @@ Use this context to answer user questions about the page.`;
 
     };
     self.onInput = function() {
-        userInput = omnibar.input.value;
+        userInput = inputElement.value;
         curInputIdx = inputs.length;
         if (userInput === "/") {
-            commandsPrompt.activate(omnibar.input, Object.keys(commands));
+            commandsPrompt.activate(inputElement, Object.keys(commands));
         } else if (userInput[0] !== "/") {
             commandsPrompt.close();
         } else if (userInput === "/provider ") {
-            commandsPrompt.activate(omnibar.input, providers);
+            commandsPrompt.activate(inputElement, providers);
         }
     };
     self.rotateInput = function(backward) {
         if (inputs.length > 0) {
-            [omnibar.input.value, curInputIdx] = rotateInput(inputs, backward, curInputIdx, userInput);
+            [inputElement.value, curInputIdx] = rotateInput(inputs, backward, curInputIdx, userInput);
         }
     };
     self.onClose = function() {
-        omnibar.resultsDiv.className = "";
         commandsPrompt.close();
     };
     self.onTabKey = function() {
-        const fi = omnibar.resultsDiv.querySelector('li.focused');
-        if (fi.classList.contains("role-user")) {
-            omnibar.input.value = fi.innerText;
+        const fi = messagesDiv.querySelector('li.focused');
+        if (fi && fi.classList.contains("role-user")) {
+            inputElement.value = fi.innerText;
         }
     };
 
     let lastResponseItem = null;
     self.onEnter = function() {
-        const prompt = omnibar.input.value;
+        const prompt = inputElement.value;
         if (!prompt) {
             return false;
         }
@@ -341,7 +341,7 @@ Use this context to answer user questions about the page.`;
         if (match) {
             commands[match[1]](match[2]);
             userInput = "";
-            omnibar.input.value = "";
+            inputElement.value = "";
             return false;
         }
 
@@ -350,11 +350,11 @@ Use this context to answer user questions about the page.`;
         }
         if (llmRequest({ messages, provider }, onChunk)) {
             userInput = "";
-            omnibar.input.value = "";
+            inputElement.value = "";
             response = "";
-            omnibar.resultsDiv.lastElementChild.append(createElementWithContent('li', prompt, { "class": "role-user" }));
+            messagesDiv.lastElementChild.append(createElementWithContent('li', prompt, { "class": "role-user" }));
             lastResponseItem = createElementWithContent('li', "<div></div>", { "class": "role-assistant" });
-            omnibar.resultsDiv.lastElementChild.append(lastResponseItem);
+            messagesDiv.lastElementChild.append(lastResponseItem);
             spinnerIndex = 0;
             lastResponseItem.firstElementChild.innerText = dots[spinnerIndex];
             spinnerInterval = setInterval(() => {

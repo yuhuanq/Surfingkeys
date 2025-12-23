@@ -420,6 +420,19 @@ function createFront(insert, normal, hints, visual, browser) {
         self.openOmnibar(({type: "OmniQuery", extra: args.query, style: args.style}));
     };
 
+    /**
+     * Toggle the LLM Chat panel.
+     *
+     * @param {object} extra optional parameters including pageContext and system message
+     * @name Front.toggleLLMChatPanel
+     */
+    self.toggleLLMChatPanel = function(extra) {
+        self.command({
+            action: 'toggleLLMChatPanel',
+            extra: extra
+        });
+    };
+
     var _keyHints = {
         accumulated: "",
         candidates: {},

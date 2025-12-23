@@ -26,6 +26,7 @@ import createAPI from '../common/api.js';
 import createDefaultMappings from '../common/default.js';
 import createOmnibar from './omnibar.js';
 import createCommands from './command.js';
+import createLLMChat from './llmchat.js';
 
 const Front = (function() {
     const clipboard = createClipboard();
@@ -187,6 +188,12 @@ const Front = (function() {
     const sk_bubble_content = _bubble.querySelector("div.sk_bubble_content");
     const sk_bubble_arrow = _bubble.querySelector('div.sk_arrow');
     const sk_bubbleClassList = sk_bubble_content.classList;
+    const _llmchat_panel = document.getElementById('sk_llmchat_panel');
+    const _llmchat_messages = _llmchat_panel?.querySelector('.llmchat-panel-messages');
+    const _llmchat_input = _llmchat_panel?.querySelector('.llmchat-input');
+    const _llmchat_provider = _llmchat_panel?.querySelector('.llmchat-provider');
+    const _llmchat_prompt = _llmchat_panel?.querySelector('.llmchat-prompt');
+    const _llmchat_close_btn = _llmchat_panel?.querySelector('.llmchat-close-btn');
     function clearScrollerIndicator() {
         sk_bubbleClassList.remove("sk_scroller_indicator_top");
         sk_bubbleClassList.remove("sk_scroller_indicator_middle");
@@ -590,6 +597,85 @@ const Front = (function() {
     _actions['openFinder'] = function() {
         Find.open();
     };
+
+    // LLMChat Panel Management (only if panel exists - not in options page)
+    let llmChatPanelVisible = false;
+    let llmChat = null;
+    
+    if (_llmchat_panel && _llmchat_messages && _llmchat_input && _llmchat_provider && _llmchat_prompt) {
+        llmChat = createLLMChat({
+            messagesDiv: _llmchat_messages,
+            inputElement: _llmchat_input,
+            providerSpan: _llmchat_provider,
+            promptSpan: _llmchat_prompt
+        });
+
+        function showLLMChatPanel(opts) {
+            _llmchat_panel.style.display = '';
+            llmChat.onOpen(opts);
+            // Trigger animation after display is set
+            setTimeout(() => {
+                _llmchat_panel.classList.add('visible');
+            }, 10);
+            llmChatPanelVisible = true;
+            _llmchat_input.focus();
+            self.flush();
+        }
+
+        function hideLLMChatPanel() {
+            _llmchat_panel.classList.remove('visible');
+            // Wait for animation to complete before hiding
+            setTimeout(() => {
+                if (!llmChatPanelVisible) {
+                    _llmchat_panel.style.display = 'none';
+                    llmChat.onClose();
+                    self.flush();
+                }
+            }, 300);
+            llmChatPanelVisible = false;
+        }
+
+        _actions['toggleLLMChatPanel'] = function(message) {
+            if (llmChatPanelVisible) {
+                hideLLMChatPanel();
+            } else {
+                showLLMChatPanel(message.extra);
+            }
+        };
+        self.toggleLLMChatPanel = _actions['toggleLLMChatPanel'];
+
+        // LLMChat input event handlers
+        _llmchat_input.addEventListener('input', () => {
+            llmChat.onInput();
+        });
+
+        _llmchat_input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                llmChat.onEnter();
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                llmChat.rotateInput(true);
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                llmChat.rotateInput(false);
+            } else if (event.key === 'Tab') {
+                event.preventDefault();
+                llmChat.onTabKey();
+            }
+        });
+
+        // Close button handler
+        _llmchat_close_btn.addEventListener('click', () => {
+            hideLLMChatPanel();
+        });
+    } else {
+        // Fallback for pages without LLMChat panel (like options page)
+        _actions['toggleLLMChatPanel'] = function(message) {
+            console.warn('LLMChat panel not available on this page');
+        };
+        self.toggleLLMChatPanel = _actions['toggleLLMChatPanel'];
+    }
 
     function showBanner(content, linger_time) {
         _banner.style.cssText = "";

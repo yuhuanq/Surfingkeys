@@ -494,30 +494,24 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     mapkey(':', '#8Open commands', function() {
         front.openOmnibar({type: "Commands"});
     });
-    mapkey('A', '#8Open llm chat', function() {
-        front.openOmnibar({
-            type: "LLMChat",
-            extra: {
-                pageContext: {
-                    url: window.location.href,
-                    title: document.title,
-                    content: document.body.innerText
-                }
+    mapkey('A', '#8Toggle llm chat panel', function() {
+        front.toggleLLMChatPanel({
+            pageContext: {
+                url: window.location.href,
+                title: document.title,
+                content: document.body.innerText
             }
         });
     });
-    vmapkey('A', '#8Open llm chat', function() {
+    vmapkey('A', '#8Toggle llm chat panel with selection', function() {
         const sel = window.getSelection().toString();
-        front.openOmnibar({
-            type: "LLMChat",
-            extra: {
-                pageContext: {
-                    url: window.location.href,
-                    title: document.title,
-                    content: document.body.innerText
-                },
-                system: sel
-            }
+        front.toggleLLMChatPanel({
+            pageContext: {
+                url: window.location.href,
+                title: document.title,
+                content: document.body.innerText
+            },
+            system: sel
         });
     });
     mapkey('yi', '#7Yank text of an input', function() {

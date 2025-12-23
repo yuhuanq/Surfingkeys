@@ -495,13 +495,30 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         front.openOmnibar({type: "Commands"});
     });
     mapkey('A', '#8Open llm chat', function() {
-        front.openOmnibar({type: "LLMChat"});
+        front.openOmnibar({
+            type: "LLMChat",
+            extra: {
+                pageContext: {
+                    url: window.location.href,
+                    title: document.title,
+                    content: document.body.innerText
+                }
+            }
+        });
     });
     vmapkey('A', '#8Open llm chat', function() {
         const sel = window.getSelection().toString();
-        front.openOmnibar({type: "LLMChat", extra: {
-            system: sel
-        }});
+        front.openOmnibar({
+            type: "LLMChat",
+            extra: {
+                pageContext: {
+                    url: window.location.href,
+                    title: document.title,
+                    content: document.body.innerText
+                },
+                system: sel
+            }
+        });
     });
     mapkey('yi', '#7Yank text of an input', function() {
         hints.create("input, textarea, select", function(element) {

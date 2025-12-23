@@ -13,7 +13,30 @@ export default function (omnibar, front) {
         omnibarPosition: "bottom",
     };
 
+    function getPageContext() {
+        try {
+            // Access the parent page, not the iframe
+            const targetWindow = window.parent || window.top || window;
+            const targetDocument = targetWindow.document;
+            
+            return {
+                url: targetWindow.location.href,
+                title: targetDocument.title,
+                content: targetDocument.body.innerText
+            };
+        } catch (e) {
+            // Fallback if we can't access parent (cross-origin restrictions)
+            console.error('Could not access parent page context:', e);
+            return {
+                url: window.location.href,
+                title: document.title,
+                content: document.body.innerText
+            };
+        }
+    }
+
     const RESERVED_MESSAGE_COUNT = 1;
+    // Initialize with empty system message - will be populated in onOpen
     let messages = [
         {
             "content": "",
@@ -144,6 +167,8 @@ export default function (omnibar, front) {
 
     const clear = () => {
         messages = messages.slice(0, RESERVED_MESSAGE_COUNT);
+        // Reset system message so it gets refreshed with current page context on next open
+        messages[0].content = "";
         omnibar.resultsDiv.querySelector('ul')?.remove();
         renderMessages();
     };
@@ -167,6 +192,19 @@ export default function (omnibar, front) {
             curInputIdx = inputs.length;
         },
         "clear": clear,
+        "refresh": () => {
+            const pageContext = getPageContext();
+            messages[0].content = `You are a helpful AI assistant. You have access to the current web page.
+
+Page URL: ${pageContext.url}
+Page Title: ${pageContext.title}
+
+Page Content:
+${pageContext.content}
+
+Use this context to answer user questions about the page.`;
+            showSystemMessage('Page context refreshed', 2000);
+        },
     };
     const commandsPatten = new RegExp(`^/(${Object.keys(commands).join("|")})(?:\\s+(.+)|\\s*)?$`, "")
     const commandsPrompt = new CursorPrompt((c) => {
@@ -225,7 +263,23 @@ export default function (omnibar, front) {
     }
 
     self.onOpen = function(opts) {
-        messages[0].content = opts && opts.system || "";
+        // Use page context passed from content script
+        if (opts && opts.system) {
+            // Use custom system message if provided
+            messages[0].content = opts.system;
+        } else if (!messages[0].content && opts && opts.pageContext) {
+            // Initialize with page context passed from content script
+            const pageContext = opts.pageContext;
+            messages[0].content = `You are a helpful AI assistant. You have access to the current web page.
+
+Page URL: ${pageContext.url}
+Page Title: ${pageContext.title}
+
+Page Content:
+${pageContext.content}
+
+Use this context to answer user questions about the page.`;
+        }
         omnibar.resultsDiv.className = "llmChat";
         if (!provider) {
             provider = opts && opts.provider || runtime.conf.defaultLLMProvider;

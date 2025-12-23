@@ -610,6 +610,40 @@ const Front = (function() {
             promptSpan: _llmchat_prompt
         });
 
+        // Panel resize functionality
+        const resizeHandle = _llmchat_panel.querySelector('.llmchat-resize-handle');
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            startX = e.clientX;
+            startWidth = _llmchat_panel.offsetWidth;
+            _llmchat_panel.classList.add('resizing');
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            
+            const deltaX = startX - e.clientX;
+            const newWidth = startWidth + deltaX;
+            const minWidth = 300;
+            const maxWidth = window.innerWidth * 0.8;
+            
+            if (newWidth >= minWidth && newWidth <= maxWidth) {
+                _llmchat_panel.style.width = newWidth + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                _llmchat_panel.classList.remove('resizing');
+            }
+        });
+
         function showLLMChatPanel(opts) {
             _llmchat_panel.style.display = '';
             llmChat.onOpen(opts);

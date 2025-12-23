@@ -484,6 +484,7 @@ div.sk_arrow[dir=up]>div:nth-of-type(2) {
     right: -25%;
     width: 22%;
     min-width: 300px;
+    max-width: 80%;
     height: 100vh;
     z-index: 2147482999;
     display: flex;
@@ -493,6 +494,25 @@ div.sk_arrow[dir=up]>div:nth-of-type(2) {
 }
 #sk_llmchat_panel.visible {
     right: 0;
+}
+#sk_llmchat_panel.resizing {
+    transition: none;
+}
+.llmchat-resize-handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 8px;
+    height: 100%;
+    cursor: ew-resize;
+    z-index: 10;
+    background: transparent;
+}
+.llmchat-resize-handle:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+.llmchat-resize-handle:active {
+    background: rgba(0, 0, 0, 0.2);
 }
 .llmchat-panel-header {
     display: flex;

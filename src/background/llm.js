@@ -421,12 +421,14 @@ function gemini(req, opts) {
         return;
     }
 
-    let model = opts.model || "gemini-2.0-flash";
+    let model = opts.model || "gemini-2.5-flash";
     function buildParts(m) {
+        // Gemini uses "model" instead of "assistant"
+        const role = m.role === "assistant" ? "model" : m.role;
         if (typeof(m.content) === "string") {
-            return {"role": m.role, "parts": [ {"text": m.content} ]}
+            return {"role": role, "parts": [ {"text": m.content} ]}
         } else {
-            return {"role": m.role, "parts": [ {"text": m.content[0].text} ]}
+            return {"role": role, "parts": [ {"text": m.content[0].text} ]}
         }
     }
     function transformMessages(reqMsgs) {
@@ -441,12 +443,19 @@ function gemini(req, opts) {
         return req;
     }
 
+    const requestBody = {
+        ...transformMessages(req.messages),
+        tools: [{
+            googleSearch: {}
+        }]
+    };
+
     fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${gemini.apiKey}`, {
         method: 'POST',
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify(transformMessages(req.messages))
+        body: JSON.stringify(requestBody)
     }).then(response => {
         const reader = response.body.getReader();
 

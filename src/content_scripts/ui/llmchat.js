@@ -7,13 +7,37 @@ import {
     rotateInput,
 } from '../common/utils.js';
 
-export default function (omnibar, front) {
+export default function (panelElements) {
+    const { messagesDiv, inputElement, providerSpan, promptSpan } = panelElements;
+    
     const self = {
         prompt: '🐝',
-        omnibarPosition: "bottom",
     };
 
+    function getPageContext() {
+        try {
+            // Access the parent page, not the iframe
+            const targetWindow = window.parent || window.top || window;
+            const targetDocument = targetWindow.document;
+            
+            return {
+                url: targetWindow.location.href,
+                title: targetDocument.title,
+                content: targetDocument.body.innerText
+            };
+        } catch (e) {
+            // Fallback if we can't access parent (cross-origin restrictions)
+            console.error('Could not access parent page context:', e);
+            return {
+                url: window.location.href,
+                title: document.title,
+                content: document.body.innerText
+            };
+        }
+    }
+
     const RESERVED_MESSAGE_COUNT = 1;
+    // Initialize with empty system message - will be populated in onOpen
     let messages = [
         {
             "content": "",
@@ -130,9 +154,9 @@ export default function (omnibar, front) {
 
     function showSystemMessage(msg, duration) {
         const li = createElementWithContent('li', msg, { "class": "role-surfingkeys" });
-        omnibar.resultsDiv.querySelector('ul')?.append(li);
+        messagesDiv.querySelector('ul')?.append(li);
 
-        // Add fadeout animation after 3 seconds
+        // Add fadeout animation after duration
         setTimeout(() => {
             li.style.transition = "opacity 1s";
             li.style.opacity = "0";
@@ -144,7 +168,9 @@ export default function (omnibar, front) {
 
     const clear = () => {
         messages = messages.slice(0, RESERVED_MESSAGE_COUNT);
-        omnibar.resultsDiv.querySelector('ul')?.remove();
+        // Reset system message so it gets refreshed with current page context on next open
+        messages[0].content = "";
+        messagesDiv.querySelector('ul')?.remove();
         renderMessages();
     };
     const commands = {
@@ -155,7 +181,7 @@ export default function (omnibar, front) {
             if (providers.indexOf(p) !== -1) {
                 clear();
                 provider = p;
-                omnibar.resultsDiv.querySelector('h4').textContent = p;
+                providerSpan.textContent = p;
             } else {
                 const msg = `Please specify a provider, which can be [ ${providers.join(", ")} ].`
                 showSystemMessage(msg, 8000);
@@ -167,6 +193,19 @@ export default function (omnibar, front) {
             curInputIdx = inputs.length;
         },
         "clear": clear,
+        "refresh": () => {
+            const pageContext = getPageContext();
+            messages[0].content = `You are a helpful AI assistant. You have access to the current web page.
+
+Page URL: ${pageContext.url}
+Page Title: ${pageContext.title}
+
+Page Content:
+${pageContext.content}
+
+Use this context to answer user questions about the page.`;
+            showSystemMessage('Page context refreshed', 2000);
+        },
     };
     const commandsPatten = new RegExp(`^/(${Object.keys(commands).join("|")})(?:\\s+(.+)|\\s*)?$`, "")
     const commandsPrompt = new CursorPrompt((c) => {
@@ -218,19 +257,35 @@ export default function (omnibar, front) {
                 ul.append(li);
             }
         }
-        omnibar.resultsDiv.append(ul);
+        messagesDiv.append(ul);
         if (ul.lastElementChild) {
             ul.lastElementChild.scrollIntoView({ behavior: 'instant', block: 'end', });
         }
     }
 
     self.onOpen = function(opts) {
-        messages[0].content = opts && opts.system || "";
-        omnibar.resultsDiv.className = "llmChat";
+        // Use page context passed from content script
+        if (opts && opts.system) {
+            // Use custom system message if provided
+            messages[0].content = opts.system;
+        } else if (!messages[0].content && opts && opts.pageContext) {
+            // Initialize with page context passed from content script
+            const pageContext = opts.pageContext;
+            messages[0].content = `You are a helpful AI assistant. You have access to the current web page.
+
+Page URL: ${pageContext.url}
+Page Title: ${pageContext.title}
+
+Page Content:
+${pageContext.content}
+
+Use this context to answer user questions about the page.`;
+        }
         if (!provider) {
             provider = opts && opts.provider || runtime.conf.defaultLLMProvider;
         }
-        omnibar.resultsDiv.append(createElementWithContent('h4', provider));
+        providerSpan.textContent = provider;
+        promptSpan.textContent = self.prompt;
         renderMessages();
 
         userInput = "";
@@ -246,35 +301,34 @@ export default function (omnibar, front) {
 
     };
     self.onInput = function() {
-        userInput = omnibar.input.value;
+        userInput = inputElement.value;
         curInputIdx = inputs.length;
         if (userInput === "/") {
-            commandsPrompt.activate(omnibar.input, Object.keys(commands));
+            commandsPrompt.activate(inputElement, Object.keys(commands));
         } else if (userInput[0] !== "/") {
             commandsPrompt.close();
         } else if (userInput === "/provider ") {
-            commandsPrompt.activate(omnibar.input, providers);
+            commandsPrompt.activate(inputElement, providers);
         }
     };
     self.rotateInput = function(backward) {
         if (inputs.length > 0) {
-            [omnibar.input.value, curInputIdx] = rotateInput(inputs, backward, curInputIdx, userInput);
+            [inputElement.value, curInputIdx] = rotateInput(inputs, backward, curInputIdx, userInput);
         }
     };
     self.onClose = function() {
-        omnibar.resultsDiv.className = "";
         commandsPrompt.close();
     };
     self.onTabKey = function() {
-        const fi = omnibar.resultsDiv.querySelector('li.focused');
-        if (fi.classList.contains("role-user")) {
-            omnibar.input.value = fi.innerText;
+        const fi = messagesDiv.querySelector('li.focused');
+        if (fi && fi.classList.contains("role-user")) {
+            inputElement.value = fi.innerText;
         }
     };
 
     let lastResponseItem = null;
     self.onEnter = function() {
-        const prompt = omnibar.input.value;
+        const prompt = inputElement.value;
         if (!prompt) {
             return false;
         }
@@ -287,7 +341,7 @@ export default function (omnibar, front) {
         if (match) {
             commands[match[1]](match[2]);
             userInput = "";
-            omnibar.input.value = "";
+            inputElement.value = "";
             return false;
         }
 
@@ -296,11 +350,11 @@ export default function (omnibar, front) {
         }
         if (llmRequest({ messages, provider }, onChunk)) {
             userInput = "";
-            omnibar.input.value = "";
+            inputElement.value = "";
             response = "";
-            omnibar.resultsDiv.lastElementChild.append(createElementWithContent('li', prompt, { "class": "role-user" }));
+            messagesDiv.lastElementChild.append(createElementWithContent('li', prompt, { "class": "role-user" }));
             lastResponseItem = createElementWithContent('li', "<div></div>", { "class": "role-assistant" });
-            omnibar.resultsDiv.lastElementChild.append(lastResponseItem);
+            messagesDiv.lastElementChild.append(lastResponseItem);
             spinnerIndex = 0;
             lastResponseItem.firstElementChild.innerText = dots[spinnerIndex];
             spinnerInterval = setInterval(() => {

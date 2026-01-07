@@ -478,6 +478,170 @@ div.sk_arrow[dir=up]>div:nth-of-type(2) {
     z-index: 2147483300 !important;
     width: 80% !important;
 }
+#sk_llmchat_panel {
+    position: fixed;
+    top: 0;
+    right: -25%;
+    width: 22%;
+    min-width: 300px;
+    max-width: 80%;
+    height: 100vh;
+    z-index: 2147482999;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+    transition: right 0.3s ease-in-out;
+}
+#sk_llmchat_panel.visible {
+    right: 0;
+}
+#sk_llmchat_panel.resizing {
+    transition: none;
+}
+.llmchat-resize-handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 8px;
+    height: 100%;
+    cursor: ew-resize;
+    z-index: 10;
+    background: transparent;
+}
+.llmchat-resize-handle:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+.llmchat-resize-handle:active {
+    background: rgba(0, 0, 0, 0.2);
+}
+.llmchat-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #999;
+    flex-shrink: 0;
+}
+.llmchat-provider {
+    background-color: #1b541d;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 14px;
+    font-weight: bold;
+}
+.llmchat-close-btn {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+.llmchat-close-btn:hover {
+    opacity: 1;
+}
+.llmchat-panel-messages {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+    scrollbar-width: thin;
+    max-width: 100%;
+}
+.llmchat-panel-messages ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.llmchat-panel-messages ul li {
+    padding: 8px;
+    margin: 8px 0;
+    border-radius: 8px;
+    display: flex;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.llmchat-panel-messages ul li:before {
+    font-size: 18px;
+    padding-right: 8px;
+    flex-shrink: 0;
+}
+.llmchat-panel-messages ul li.role-user {
+    background: #e3f2fd;
+}
+.llmchat-panel-messages ul li.role-user:before {
+    content: var(--llm-user-icon, '🐝');
+}
+.llmchat-panel-messages ul li.role-assistant {
+    background: #f5f5f5;
+}
+.llmchat-panel-messages ul li.role-assistant:before {
+    content: var(--llm-assistant-icon, '👩‍🎓');
+}
+.llmchat-panel-messages ul li.role-surfingkeys {
+    background: #fff3cd;
+}
+.llmchat-panel-messages ul li.role-surfingkeys:before {
+    content: var(--llm-assistant-icon, 'ℹ︎');
+}
+.llmchat-panel-messages ul li > div {
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+.llmchat-panel-messages ul li > div * {
+    max-width: 100%;
+}
+.llmchat-panel-messages ul li > div pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow-x: auto;
+    max-width: 100%;
+}
+.llmchat-panel-messages ul li > div code {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+.llmchat-panel-messages ul li > div p {
+    margin: 0.5em 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+.llmchat-panel-input-area {
+    border-top: 1px solid #999;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.llmchat-prompt {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.llmchat-input {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    outline: none;
+}
+.llmchat-input:focus {
+    border-color: #666;
+}
 @media only screen and (max-width: 767px) {
     #sk_omnibar {
         width: 100%;
@@ -490,5 +654,13 @@ div.sk_arrow[dir=up]>div:nth-of-type(2) {
     .sk_omnibar_bottom #sk_omnibarSearchArea {
         margin: 0;
         padding: 0.2rem;
+    }
+    #sk_llmchat_panel {
+        width: 80%;
+        min-width: unset;
+        right: -85%;
+    }
+    #sk_llmchat_panel.visible {
+        right: 0;
     }
 }
